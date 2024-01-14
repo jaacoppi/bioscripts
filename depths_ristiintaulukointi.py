@@ -13,18 +13,33 @@ input_bed_df = pd.read_csv(input_bed_path, sep='\t', header=None, names=['Chrom'
 final_data = []
 
 # Loop through each .tsv file
+input_bed_df = input_bed_df.astype(str)
+
+
+# Create a DataFrame
+summed_df = pd.DataFrame(columns=['min', 'files'])
+
 for tsv_file in output_files:
     print("Reading file " + tsv_file)
     tsv_df = pd.read_csv(tsv_file, sep='\t')
-
-    input_bed_df[['Chrom', 'Start', 'End']] = input_bed_df[['Chrom', 'Start', 'End']].astype(tsv_df[['Chrom', 'Start', 'End']].dtypes)
+    tsv_df = tsv_df.astype(str)
 
     # Merge DataFrames based on 'Chrom', 'Start', and 'End'
     merged_df = pd.merge(input_bed_df, tsv_df, how='inner', on=['Chrom', 'Start', 'End'])
+    merged_df = merged_df.drop('Depths', axis=1)
 
     # If any matching lines were found, add them to the final_data list
     if not merged_df.empty:
-        final_data.append(merged_df)
+        merged_df['files'] = tsv_file
+        if summed_df['min'].empty or int(summed_df['min'][0]) > int(merged_df['Min'][0]):
+            print("Why doesn't this work?")
+            summed_df['min'] = int (merged_df['Min'].iloc[0])
+            print(summed_df['min'])
+
+             
+        summed_df['files'] = summed_df['files'] + tsv_file + ", "
+
+final_data.append(summed_df)
 
 # Concatenate the matching lines into a final DataFrame
 final_df = pd.concat(final_data, ignore_index=True)
